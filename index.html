@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prakiraan Cuaca BMKG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gradient-to-b from-sky-50 to-sky-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+      <h1 class="text-2xl font-bold text-sky-700 mb-4 text-center">🌦️ Prakiraan Cuaca Besok</h1>
+      <p class="text-gray-600 mb-4 text-center">Kecamatan Sukorejo – Kelurahan Blitar</p>
+
+      <div id="loading" class="text-center text-gray-500">Memuat data dari BMKG...</div>
+
+      <div id="result" class="hidden">
+        <div class="space-y-3">
+          <p><strong>📅 Tanggal:</strong> <span id="tanggal"></span></p>
+          <p><strong>🕖 Rentang waktu:</strong> 07:00 – 16:00</p>
+          <p><strong>🌡️ Suhu rata-rata:</strong> <span id="suhu"></span>°C</p>
+          <p><strong>🌤️ Cuaca dominan:</strong> <span id="cuaca"></span></p>
+        </div>
+
+        <h2 class="mt-6 mb-2 font-semibold text-sky-700">Detail Suhu per Jam:</h2>
+        <ul id="list" class="bg-sky-50 p-3 rounded-lg text-sm font-mono space-y-1"></ul>
+      </div>
+    </div>
+
+    <script>
+      fetch("https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=35.72.02.1002")
+        .then((res) => res.json())
+        .then((json) => {
+          const allData = json.data[0].cuaca.flat();
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
+          const filtered = allData.filter((item) => {
+            if (!item.local_datetime.startsWith(tomorrowStr)) return false;
+            const time = item.local_datetime.split(" ")[1];
+            return time >= "07:00:00" && time <= "16:00:00";
+          });
+
+          const loading = document.getElementById("loading");
+          const result = document.getElementById("result");
+
+          if (filtered.length === 0) {
+            loading.textContent = "Data tidak ditemukan.";
+            return;
+          }
+
+          loading.classList.add("hidden");
+          result.classList.remove("hidden");
+
+          const avgTemp = filtered.reduce((a, b) => a + b.t, 0) / filtered.length;
+
+          const descCount = {};
+          filtered.forEach((d) => {
+            descCount[d.weather_desc] = (descCount[d.weather_desc] || 0) + 1;
+          });
+          const cuacaDominan = Object.entries(descCount).sort((a, b) => b[1] - a[1])[0][0];
+
+          document.getElementById("tanggal").textContent = tomorrowStr;
+          document.getElementById("suhu").textContent = avgTemp.toFixed(1);
+          document.getElementById("cuaca").textContent = cuacaDominan;
+
+          const list = document.getElementById("list");
+          list.innerHTML = filtered.map((a) => `<li>🕓 ${a.local_datetime.split(" ")[1]} → ${a.t}°C (${a.weather_desc})</li>`).join("");
+        })
+        .catch((err) => {
+          document.getElementById("loading").textContent = "Gagal mengambil data BMKG!";
+          console.error(err);
+        });
+    </script>
+  </body>
+</html>
