@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Prakiraan Cuaca BMKG</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
   </head>
   <body class="bg-gradient-to-b from-sky-50 to-sky-100 min-h-screen flex items-center justify-center">
     <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
@@ -25,52 +26,54 @@
         <ul id="list" class="bg-sky-50 p-3 rounded-lg text-sm font-mono space-y-1"></ul>
       </div>
     </div>
-
     <script>
-      fetch("https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=35.72.02.1002")
-        .then((res) => res.json())
-        .then((json) => {
-          const allData = json.data[0].cuaca.flat();
-          const tomorrow = new Date();
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      $(document).ready(function () {
+        const url = "https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=35.72.02.1002";
 
-          const filtered = allData.filter((item) => {
-            if (!item.local_datetime.startsWith(tomorrowStr)) return false;
-            const time = item.local_datetime.split(" ")[1];
-            return time >= "07:00:00" && time <= "16:00:00";
+        $.getJSON(url)
+          .done(function (json) {
+            const allData = json.data[0].cuaca.flat();
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
+            const filtered = allData.filter((item) => {
+              if (!item.local_datetime.startsWith(tomorrowStr)) return false;
+              const time = item.local_datetime.split(" ")[1];
+              return time >= "07:00:00" && time <= "16:00:00";
+            });
+
+            const $loading = $("#loading");
+            const $result = $("#result");
+
+            if (filtered.length === 0) {
+              $loading.text("Data tidak ditemukan.");
+              return;
+            }
+
+            $loading.addClass("hidden");
+            $result.removeClass("hidden");
+
+            const avgTemp = filtered.reduce((a, b) => a + b.t, 0) / filtered.length;
+
+            const descCount = {};
+            filtered.forEach((d) => {
+              descCount[d.weather_desc] = (descCount[d.weather_desc] || 0) + 1;
+            });
+            const cuacaDominan = Object.entries(descCount).sort((a, b) => b[1] - a[1])[0][0];
+
+            $("#tanggal").text(tomorrowStr);
+            $("#suhu").text(avgTemp.toFixed(1));
+            $("#cuaca").text(cuacaDominan);
+
+            const listItems = filtered.map((a) => `<li>🕓 ${a.local_datetime.split(" ")[1]} → ${a.t}°C (${a.weather_desc})</li>`).join("");
+            $("#list").html(listItems);
+          })
+          .fail(function (err) {
+            $("#loading").text("Gagal mengambil data BMKG!");
+            console.error(err);
           });
-
-          const loading = document.getElementById("loading");
-          const result = document.getElementById("result");
-
-          if (filtered.length === 0) {
-            loading.textContent = "Data tidak ditemukan.";
-            return;
-          }
-
-          loading.classList.add("hidden");
-          result.classList.remove("hidden");
-
-          const avgTemp = filtered.reduce((a, b) => a + b.t, 0) / filtered.length;
-
-          const descCount = {};
-          filtered.forEach((d) => {
-            descCount[d.weather_desc] = (descCount[d.weather_desc] || 0) + 1;
-          });
-          const cuacaDominan = Object.entries(descCount).sort((a, b) => b[1] - a[1])[0][0];
-
-          document.getElementById("tanggal").textContent = tomorrowStr;
-          document.getElementById("suhu").textContent = avgTemp.toFixed(1);
-          document.getElementById("cuaca").textContent = cuacaDominan;
-
-          const list = document.getElementById("list");
-          list.innerHTML = filtered.map((a) => `<li>🕓 ${a.local_datetime.split(" ")[1]} → ${a.t}°C (${a.weather_desc})</li>`).join("");
-        })
-        .catch((err) => {
-          document.getElementById("loading").textContent = "Gagal mengambil data BMKG!";
-          console.error(err);
-        });
+      });
     </script>
   </body>
 </html>
