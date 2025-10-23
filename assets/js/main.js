@@ -28,6 +28,10 @@ $(document).ready(async function () {
   $("#penjualanTable").html(rows);
 
   // --- set batas minimal & maksimal tanggal (hari ini sampai 2 hari ke depan)
+  function normalizeDate(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  }
+
   const today = new Date();
   const maxDay = new Date();
   maxDay.setDate(today.getDate() + 2);
@@ -35,6 +39,7 @@ $(document).ready(async function () {
   const toDateStr = (d) => d.toISOString().split("T")[0];
   $tanggalInput.attr("min", toDateStr(today));
   $tanggalInput.attr("max", toDateStr(maxDay));
+  $tanggalInput.val(toDateStr(today));
 
   // --- event klik tombol
   $btnAmbil.on("click", function () {
@@ -46,10 +51,7 @@ $(document).ready(async function () {
     }
 
     const selDateObj = new Date(selectedDate);
-    if (
-      selDateObj.getDate() < today.getDate() ||
-      selDateObj.getDate() > maxDay.getDate()
-    ) {
+    if (selDateObj < normalizeDate(today) || selDateObj > maxDay) {
       alert("Tanggal harus antara hari ini dan 2 hari ke depan.");
       return;
     }
@@ -105,15 +107,9 @@ $(document).ready(async function () {
           .join("");
         $("#list").html(listItems);
 
-        // === 🔮 Jalankan logika fuzzy berdasarkan suhu rata-rata
+        // Jalankan logika fuzzy berdasarkan suhu rata-rata
         const hasil = FuzzyPrediksi.infer(avgTemp);
 
-        // tampilkan hasil prediksi
-        // $("#hasilPrediksi").html(
-        //   ` <strong>${hasil.produksiLiter.toFixed(1)} liter</strong> (${
-        //     hasil.label
-        //   }), Estimasi pendapatan <strong>Rp ${hasil.pendapatan.toLocaleString()}</strong>.`
-        // );
         $("#liter").html(`${hasil.produksiLiter.toFixed(1)} `);
         $("#pendapatan").html(`Rp. ${hasil.pendapatan.toLocaleString()}`);
         $prediksi.removeClass("hidden");
