@@ -1,79 +1,89 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Prakiraan Cuaca BMKG</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-  </head>
-  <body class="bg-gradient-to-b from-sky-50 to-sky-100 min-h-screen flex items-center justify-center">
-    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-      <h1 class="text-2xl font-bold text-sky-700 mb-4 text-center">🌦️ Prakiraan Cuaca Besok</h1>
-      <p class="text-gray-600 mb-4 text-center">Kecamatan Sukorejo – Kelurahan Blitar</p>
 
-      <div id="loading" class="text-center text-gray-500">Memuat data dari BMKG...</div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prediksi Penjualan Es Sari Kedelai</title>
 
-      <div id="result" class="hidden">
-        <div class="space-y-3">
-          <p><strong>📅 Tanggal:</strong> <span id="tanggal"></span></p>
-          <p><strong>🕖 Rentang waktu:</strong> 07:00 – 16:00</p>
-          <p><strong>🌡️ Suhu rata-rata:</strong> <span id="suhu"></span>°C</p>
-          <p><strong>🌤️ Cuaca dominan:</strong> <span id="cuaca"></span></p>
-        </div>
+  <!-- Tailwind CSS & jQuery -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+</head>
 
-        <h2 class="mt-6 mb-2 font-semibold text-sky-700">Detail Suhu per Jam:</h2>
-        <ul id="list" class="bg-sky-50 p-3 rounded-lg text-sm font-mono space-y-1"></ul>
+<body class="bg-gradient-to-b from-sky-50 to-sky-100 min-h-screen flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-6xl grid md:grid-cols-2 gap-6">
+
+    <!-- 📈 Kolom Kiri: Data Penjualan -->
+    <div>
+      <h2 class="text-xl font-bold text-sky-700 mb-3">📊 Data Penjualan Sebelumnya</h2>
+      <div class="overflow-y-auto max-h-[500px] border border-gray-200 rounded-lg">
+        <table class="min-w-full text-sm">
+          <thead class="bg-sky-100 text-sky-700 sticky top-0">
+            <tr>
+              <th class="py-2 px-3 text-left">Tanggal</th>
+              <th class="py-2 px-3 text-left">Suhu (°C)</th>
+              <th class="py-2 px-3 text-left">Pendapatan</th>
+              <th class="py-2 px-3 text-left">Produksi (ml)</th>
+            </tr>
+          </thead>
+          <tbody id="penjualanTable" class="divide-y divide-gray-100 text-gray-700"></tbody>
+        </table>
       </div>
     </div>
-    <script>
-      $(document).ready(function () {
-        const url = "https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=35.72.02.1002";
 
-        $.getJSON(url)
-          .done(function (json) {
-            const allData = json.data[0].cuaca.flat();
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = tomorrow.toISOString().split("T")[0];
+    <!-- 🤖 Kolom Kanan: Prediksi -->
+    <div>
+      <h1 class="text-2xl font-bold text-sky-700 mb-4 text-center">🌤️ Prediksi Penjualan Es Sari Kedelai</h1>
+      <!-- Input tanggal -->
+      <div class="mb-4">
+        <label for="tanggalInput" class="block text-sm font-medium text-gray-700 mb-1">Pilih tanggal (maks. 2 hari ke
+          depan)</label>
+        <input type="date" id="tanggalInput"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-400" />
+      </div>
 
-            const filtered = allData.filter((item) => {
-              if (!item.local_datetime.startsWith(tomorrowStr)) return false;
-              const time = item.local_datetime.split(" ")[1];
-              return time >= "07:00:00" && time <= "16:00:00";
-            });
+      <!-- Tombol ambil data -->
+      <button id="btnAmbil"
+        class="w-full bg-sky-600 text-white font-semibold py-2 rounded-lg hover:bg-sky-700 transition">
+        Ambil Data Cuaca dari BMKG
+      </button>
 
-            const $loading = $("#loading");
-            const $result = $("#result");
+      <!-- Loading -->
+      <div id="loading" class="text-center text-gray-500 mt-4 hidden">Memuat data dari BMKG...</div>
 
-            if (filtered.length === 0) {
-              $loading.text("Data tidak ditemukan.");
-              return;
-            }
+      <!-- Hasil -->
+      <div id="result" class="hidden mt-6">
 
-            $loading.addClass("hidden");
-            $result.removeClass("hidden");
+        <div class="space-y-3 mt-2 text-gray-800">
+          <h2 class="mt-6 mb-2 font-semibold text-sky-700"><strong>📅 Prakiraan Cuaca: <span
+                id="tanggal"></span></strong>
+          </h2>
+          <ul id="list" class="bg-sky-50 p-3 rounded-lg text-sm font-mono space-y-1"></ul>
+          <ul class="bg-sky-50 p-3 rounded-lg text-sm font-mono space-y-1">
+            <li>🌡️ Suhu rata-rata: <span id="suhu"></span>°C</li>
+            <li>🌤️ Cuaca dominan: <span id="cuaca"></span></li>
+          </ul>
+        </div>
 
-            const avgTemp = filtered.reduce((a, b) => a + b.t, 0) / filtered.length;
+        <div id="prediksi" class="space-y-3 mt-2 text-gray-800 hidden">
+          <h2 class="mt-6 mb-2 font-semibold text-green-700"><strong>📝 Prediksi Penjualan: </strong>
+          </h2>
+          <div class="mt-6 p-3 rounded-lg bg-green-50 text-green-700">
+            <ul class="font-semibold bg-sky-50 p-3 rounded-lg text-sm font-mono space-y-1">
+              <li>🥛Sari Kedelai Terjual: <span id="liter"></span>Liter</li>
+              <li>💵 Estimasi Pendapatan: <span id="pendapatan"></span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-            const descCount = {};
-            filtered.forEach((d) => {
-              descCount[d.weather_desc] = (descCount[d.weather_desc] || 0) + 1;
-            });
-            const cuacaDominan = Object.entries(descCount).sort((a, b) => b[1] - a[1])[0][0];
+  <!-- Script -->
+  <script src="./assets/js/fuzzy.js"></script>
+  <script src="./assets/js/main.js"></script>
+</body>
 
-            $("#tanggal").text(tomorrowStr);
-            $("#suhu").text(avgTemp.toFixed(1));
-            $("#cuaca").text(cuacaDominan);
-
-            const listItems = filtered.map((a) => `<li>🕓 ${a.local_datetime.split(" ")[1]} → ${a.t}°C (${a.weather_desc})</li>`).join("");
-            $("#list").html(listItems);
-          })
-          .fail(function (err) {
-            $("#loading").text("Gagal mengambil data BMKG!");
-            console.error(err);
-          });
-      });
-    </script>
-  </body>
 </html>
